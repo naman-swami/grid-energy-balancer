@@ -1,0 +1,6 @@
+spec_version: "0.1.0"
+name: grid-energy-balancer
+version: "0.1.0"
+description: "Smart microgrid demand-response, renewable load balancing, and battery storage optimizer agent minimizing marginal carbon emissions."
+model:
+  preferred: llama-3.3-70b-versatile

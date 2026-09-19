@@ -1,0 +1,28 @@
+{
+  "name": "grid-energy-balancer",
+  "instructions": "You are grid-energy-balancer. Balance volatile solar and wind generation with industrial energy storage (BESS), execute peak shaving, and minimize marginal carbon intensity.",
+  "model": "gpt-4o",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "forecast-solar-wind-generation",
+        "description": "Forecast hourly renewable generation based on numerical solar irradiance and wind speed telemetry."
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "optimize-bess-dispatch",
+        "description": "Calculate optimal Battery Energy Storage System charge/discharge schedule."
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "calculate-marginal-carbon-intensity",
+        "description": "Compute marginal grid emissions factor (gCO2/kWh) to time industrial loads with cleanest power."
+      }
+    }
+  ]
+}
