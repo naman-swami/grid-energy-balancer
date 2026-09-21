@@ -55,7 +55,7 @@ grid-energy-balancer/
 │   └── ferc_nerc_reliability_standards.md # NERC reliability standards
 ├── tests/
 │   └── test_agent.py                # Power balancing test suite
-├── main.py                          # Smart grid balancing CLI
+├── balance.py                          # Smart grid balancing CLI
 └── requirements.txt
 ```
 
@@ -66,5 +66,5 @@ grid-energy-balancer/
 pytest tests/ -v
 
 # Balance sample microgrid telemetry
-python main.py --demo
+python balance.py --demo
 ```
