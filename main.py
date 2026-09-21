@@ -1,20 +1,37 @@
-import json
 import argparse
-from src.grid_engine import GridEnergyEngine
+import json
+import os
+from models.ace_frequency_model import GridFrequencyBalancer
 
 def main():
     parser = argparse.ArgumentParser(description="Grid Energy Balancer CLI")
-    parser.add_argument("--demo", action="store_true", help="Run simulated microgrid battery dispatch optimization")
+    parser.add_argument("--demo", action="store_true", help="Balance sample microgrid scenario")
     args = parser.parse_args()
 
-    engine = GridEnergyEngine(battery_capacity_mwh=25.0, max_charge_rate_mw=5.0)
-    # 18 MW demand exceeding 15 MW threshold, with LMP price at $320/MWh
-    report = engine.calculate_dispatch(current_soc_pct=85.0, demand_mw=18.5, peak_threshold_mw=15.0, lmp_price_per_mwh=320.0)
-    print("="*60)
-    print(" GRIDZEN MICROGRID BESS DISPATCH AUDIT REPORT")
-    print("="*60)
-    print(json.dumps(report, indent=2))
-    print("="*60)
+    data_file = os.path.join(os.path.dirname(__file__), "fixtures", "grid_scenarios", "ieee_microgrid.json")
+
+    if args.demo:
+        with open(data_file, "r") as f:
+            d = json.load(f)
+
+        res = GridFrequencyBalancer.calculate_ace_and_dispatch(
+            actual_freq=d["current_frequency_hz"],
+            nominal_freq=d["nominal_frequency_hz"],
+            actual_tie_mw=d["tie_line_actual_flow_mw"],
+            scheduled_tie_mw=d["tie_line_scheduled_flow_mw"],
+            frequency_bias_b=d["frequency_bias_mw_per_01hz"],
+            bess_capacity_mwh=d["bess_available_capacity_mwh"]
+        )
+
+        print("=== SMART GRID FREQUENCY & ACE BALANCING REPORT ===\n")
+        print(f"Microgrid Zone: {d['grid_id']}")
+        print(f"System Frequency: {d['current_frequency_hz']} Hz (Deviation: {res['frequency_deviation_hz']} Hz)")
+        print(f"Tie-line Flow: {d['tie_line_actual_flow_mw']} MW (Scheduled: {d['tie_line_scheduled_flow_mw']} MW)")
+        print(f"Area Control Error (ACE): {res['area_control_error_mw']} MW")
+        print(f"Stability Assessment: {res['grid_stability_tier']}")
+        print(f"Automated Action: {res['dispatch_action']} ({res['bess_dispatch_mw']} MW)\n")
+    else:
+        parser.print_help()
 
 if __name__ == "__main__":
     main()

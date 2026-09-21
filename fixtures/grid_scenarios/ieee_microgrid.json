@@ -1,0 +1,11 @@
+{
+  "grid_id": "CAL-MICROGRID-ZONE-4",
+  "nominal_frequency_hz": 60.0,
+  "current_frequency_hz": 59.88,
+  "frequency_bias_mw_per_01hz": 25.0,
+  "tie_line_actual_flow_mw": 140.0,
+  "tie_line_scheduled_flow_mw": 150.0,
+  "renewable_solar_output_mw": 45.0,
+  "total_demand_load_mw": 180.0,
+  "bess_available_capacity_mwh": 60.0
+}

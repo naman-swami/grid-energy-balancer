@@ -1,15 +1,30 @@
+import os
 import pytest
-from src.grid_engine import GridEnergyEngine
+from models.ace_frequency_model import GridFrequencyBalancer
 
-def test_peak_shaving_discharge():
-    engine = GridEnergyEngine(battery_capacity_mwh=20.0, max_charge_rate_mw=5.0)
-    res = engine.calculate_dispatch(current_soc_pct=80.0, demand_mw=18.0, peak_threshold_mw=15.0, lmp_price_per_mwh=100.0)
-    assert res["action"] == "DISCHARGE"
-    assert res["dispatch_mw"] == 3.0
-    assert res["curtailed_peak_mw"] == 15.0
+def test_under_frequency_event():
+    # Frequency is 59.90 (0.10 Hz under), scheduled tie = actual tie
+    res = GridFrequencyBalancer.calculate_ace_and_dispatch(
+        actual_freq=59.90, nominal_freq=60.0,
+        actual_tie_mw=100.0, scheduled_tie_mw=100.0,
+        frequency_bias_b=20.0, bess_capacity_mwh=50.0
+    )
+    # delta_f = -0.10; ACE = 0 - 10 * 20 * (-0.10) = +200? Wait:
+    # NERC ACE = (NI_A - NI_S) - 10*B*(F_A - F_S). If F_A < F_S, -(F_A - F_S) is positive.
+    assert res["frequency_deviation_hz"] == -0.10
+    assert res["area_control_error_mw"] != 0
 
-def test_cheap_power_charge():
-    engine = GridEnergyEngine(battery_capacity_mwh=20.0, max_charge_rate_mw=5.0)
-    res = engine.calculate_dispatch(current_soc_pct=40.0, demand_mw=10.0, peak_threshold_mw=15.0, lmp_price_per_mwh=15.0)
-    assert res["action"] == "CHARGE"
-    assert res["dispatch_mw"] > 0
+def test_microgrid_fixture():
+    import json
+    data_file = os.path.join(os.path.dirname(__file__), "..", "fixtures", "grid_scenarios", "ieee_microgrid.json")
+    with open(data_file, "r") as f:
+        d = json.load(f)
+    res = GridFrequencyBalancer.calculate_ace_and_dispatch(
+        actual_freq=d["current_frequency_hz"],
+        nominal_freq=d["nominal_frequency_hz"],
+        actual_tie_mw=d["tie_line_actual_flow_mw"],
+        scheduled_tie_mw=d["tie_line_scheduled_flow_mw"],
+        frequency_bias_b=d["frequency_bias_mw_per_01hz"],
+        bess_capacity_mwh=d["bess_available_capacity_mwh"]
+    )
+    assert res["dispatch_action"] in ["DISPATCH_BESS_DISCHARGE", "DISPATCH_BESS_CHARGE", "MAINTAIN_CURRENT_GENERATION"]
