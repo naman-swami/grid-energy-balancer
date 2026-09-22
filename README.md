@@ -1,70 +1,47 @@
-# Grid Energy Balancer & Frequency Regulation Engine
+# Grid Frequency Regulation & BESS Balancer
 
-[![OpenGAP](https://img.shields.io/badge/OpenGAP-0.1.0-blue.svg)](agent.yaml)
-[![SmartGrid](https://img.shields.io/badge/Domain-Power_Systems_Smart_Grid-blue.svg)](docs/ferc_nerc_reliability_standards.md)
-[![Standard](https://img.shields.io/badge/Standard-NERC_BAL--001-orange.svg)](docs/ferc_nerc_reliability_standards.md)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](requirements.txt)
-[![CI](https://img.shields.io/badge/CI-Passing-brightgreen.svg)](.github/workflows/ci.yml)
+> **Transmission System Operator (TSO) Control Loop for Grid Reliability**  
+> Operationalizing NERC BAL-001 Real-Time Area Control Error (ACE) and Battery Storage Dispatch.
 
-An automated power system grid frequency and Area Control Error (ACE) balancing engine optimizing battery energy storage system (BESS) dispatch during renewable solar intermittency.
+---
 
-```
-                    ┌─────────────────────────┐
-                    │ Grid Telemetry Feeds    │
-                    │ (Frequency & Tie Flow)  │
-                    └────────────┬────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │ models/ace_frequency    │
-                    └────────────┬────────────┘
-                                 │
-                 ┌───────────────┴───────────────┐
-                 ▼                               ▼
-      ┌─────────────────────┐         ┌─────────────────────┐
-      │  NERC ACE Equation  │         │  Stability Warning  │
-      │  (MW Imbalance)     │         │ (Under/Over Freq)   │
-      └──────────┬──────────┘         └──────────┬──────────┘
-                 │                               │
-                 └───────────────┬───────────────┘
-                                 ▼
-                    ┌─────────────────────────┐
-                    │ Fast BESS Dispatch Plan │
-                    │ (MW Charge / Discharge) │
-                    └─────────────────────────┘
-```
+### NERC Reliability & ACE Dynamics
 
-## Features
+To maintain grid nominal frequency ($60.00\text{ Hz}$ in North America, $50.00\text{ Hz}$ in ENTSO-E), the engine continuously computes the Area Control Error:
 
-- **NERC BAL-001 Compliance**: Implements the official Area Control Error (ACE) formulation.
-- **Fast-Frequency BESS Dispatch**: Automatically issues MW charge/discharge commands to mitigate sub-60Hz excursions.
-- **Microgrid Benchmarking**: Comes pre-loaded with intermittent solar microgrid scenarios.
+$$ACE = (I_A - I_S) - 10 B (F_A - F_S)$$
 
-## Directory Structure
+Where:
+- $I_A - I_S$: Real-time tie-line power flow deviation from schedule ($	ext{MW}$).
+- $B$: Frequency bias setting ($	ext{MW}/0.1	ext{ Hz}$).
+- $F_A - F_S$: Measured instantaneous frequency deviation from nominal ($	ext{Hz}$).
+
+---
+
+### Real-Time Inverter & BESS Fast Dispatch
+
+When solar PV or wind generation suddenly drops, the engine dispatches Battery Energy Storage Systems (BESS) within a 4-second sub-cycle response:
 
 ```
-grid-energy-balancer/
-├── agent.yaml                       # OpenGAP 0.1.0 Manifest
-├── EXPLAINABILITY.md                # 7-checkpoint power system provenance
-├── models/
-│   └── ace_frequency_model.py       # Area Control Error balancing engine
-├── fixtures/
-│   └── grid_scenarios/
-│       └── ieee_microgrid.json      # Microgrid benchmark telemetry
-├── docs/
-│   └── ferc_nerc_reliability_standards.md # NERC reliability standards
-├── tests/
-│   └── test_agent.py                # Power balancing test suite
-├── balance.py                          # Smart grid balancing CLI
-└── requirements.txt
+[60.00 Hz Nominal] ──────────────────────────────────────────
+                       \
+                        \  PV Generation Cloud Ramp (-35 MW)
+                         \
+[59.82 Hz Trigger] ───────▼──────────────────────────────────
+                          [BESS INJECTION: +35 MW in 3.2s]
+                           ─────────────────────────────────► Recover to 59.98 Hz
 ```
 
-## Quick Start
+---
+
+### SCADA Simulation & Telemetry
 
 ```bash
-# Run grid balancing tests
-pytest tests/ -v
-
-# Balance sample microgrid telemetry
+# Balance IEEE microgrid scenario from fixtures/grid_scenarios/
 python balance.py --demo
+
+# Run power system control loop unit tests
+pytest tests/ -v
 ```
+
+Operating reserve rules, spinning reserve metrics, and frequency deadbands are governed by [GRID_RELIABILITY.md](GRID_RELIABILITY.md).
